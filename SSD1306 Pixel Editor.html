@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSD1306 Pixel Editor</title>
+    <style>
+        :root {
+            --color-bg: #1a1a1a;
+            --color-surface: #2d2d2d;
+            --color-border: #444;
+            --color-text: #e0e0e0;
+            --color-primary: #00bcd4;
+            --color-pixel-on: #00ff88;
+            --color-pixel-off: #0a2a2a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Monaco', 'Courier New', monospace;
+            background: var(--color-bg);
+            color: var(--color-text);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        h1 {
+            grid-column: 1 / -1;
+            margin-bottom: 20px;
+            color: var(--color-primary);
+            font-size: 24px;
+        }
+
+        h2 {
+            font-size: 14px;
+            color: var(--color-primary);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        button {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: var(--color-border);
+            color: var(--color-text);
+        }
+
+        .select-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select {
+            background: var(--color-border);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        .grid-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pixel-grid {
+            display: inline-grid;
+            gap: 1px;
+            background: var(--color-border);
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+        }
+
+        .pixel {
+            width: 6px;
+            height: 6px;
+            background: var(--color-pixel-off);
+            cursor: pointer;
+            border: 1px solid #1a3a3a;
+            transition: all 0.05s;
+        }
+
+        .pixel.active {
+            background: var(--color-pixel-on);
+            box-shadow: 0 0 4px var(--color-pixel-on);
+        }
+
+        .pixel:hover {
+            opacity: 0.8;
+        }
+
+        .preview {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .preview-display {
+            background: #000;
+            border: 2px solid var(--color-primary);
+            padding: 20px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .preview-pixels {
+            display: inline-grid;
+            gap: 2px;
+            background: #0a0a0a;
+            padding: 15px;
+            border-radius: 2px;
+        }
+
+        .preview-pixel {
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border: 1px solid #111;
+        }
+
+        .preview-pixel.on {
+            background: var(--color-pixel-on);
+            box-shadow: 0 0 4px var(--color-pixel-on);
+        }
+
+        .code-output {
+            background: #0a0a0a;
+            border: 1px solid var(--color-border);
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .code-output code {
+            color: #00ff88;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat {
+            background: var(--color-bg);
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid var(--color-primary);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--color-text);
+            opacity: 0.7;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: var(--color-pixel-on);
+            margin-top: 5px;
+        }
+
+        .import-input {
+            display: none;
+        }
+
+        textarea {
+            width: 100%;
+            height: 120px;
+            background: var(--color-bg);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            padding: 10px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 12px;
+            resize: vertical;
+        }
+
+        .info-box {
+            background: rgba(0, 255, 136, 0.05);
+            border-left: 3px solid var(--color-pixel-on);
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ SSD1306 Pixel Editor для MicroPython</h1>
+
+        <div class="controls">
+            <div class="select-container">
+                <label for="width">Ширина:</label>
+                <select id="width">
+                    <option value="128">128px (SSD1306 стандарт)</option>
+                    <option value="96">96px</option>
+                    <option value="64">64px</option>
+                </select>
+            </div>
+
+            <div class="select-container">
+                <label for="height">Высота:</label>
+                <select id="height">
+                    <option value="64">64px (SSD1306 стандарт)</option>
+                    <option value="32">32px</option>
+                    <option value="128">128px</option>
+                </select>
+            </div>
+
+            <div class="select-container">
+                <label for="threshold">Порог контраста:</label>
+                <input type="range" id="threshold" min="0" max="255" value="128" style="width: 150px;">
+                <span id="thresholdValue">128</span>
+            </div>
+
+            <button class="secondary" onclick="clearCanvas()">🗑️ Очистить</button>
+            <button class="secondary" onclick="invertCanvas()">⚫⚪ Инвертировать</button>
+            <button class="secondary" onclick="toggleImport()">📤 Импорт картинки</button>
+            <button onclick="exportMicroPython()">💾 Экспорт MicroPython</button>
+        </div>
+
+        <input type="file" id="imageInput" class="import-input" accept="image/*">
+
+        <div class="panel">
+            <h2>📝 Редактор пикселей</h2>
+            <div class="info-box">
+                💡 Кликай по пикселям чтобы рисовать. Импорт: используй PNG/JPG схемы, регулируй порог контраста для чёткости линий. Каждый пиксель = 1 бит в байте.
+            </div>
+            <div class="grid-container">
+                <div class="pixel-grid" id="pixelGrid"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>👀 Предпросмотр (как на дисплее)</h2>
+            <div class="preview">
+                <div class="preview-display">
+                    <div class="preview-pixels" id="preview"></div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Пиксели ВКЛ</div>
+                        <div class="stat-value" id="pixelsOnCount">0</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Байты</div>
+                        <div class="stat-value" id="bytesCount">0</div>
+                    </div>
+                </div>
+
+                <h2>📋 Код для MicroPython</h2>
+                <div class="code-output" id="codeOutput">
+                    <code id="code"></code>
+                </div>
+
+                <div class="button-group">
+                    <button onclick="copyToClipboard()">📋 Скопировать код</button>
+                    <button class="secondary" onclick="downloadAsArray()">⬇️ Скачать .py файл</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let width = 128;
+        let height = 64;
+        let pixels = [];
+
+        function initializeCanvas() {
+            width = parseInt(document.getElementById('width').value);
+            height = parseInt(document.getElementById('height').value);
+            pixels = new Array(width * height).fill(0);
+            renderGrid();
+            updatePreview();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('pixelGrid');
+            grid.innerHTML = '';
+            grid.style.gridTemplateColumns = `repeat(${width}, 6px)`;
+
+            for (let i = 0; i < pixels.length; i++) {
+                const pixel = document.createElement('div');
+                pixel.className = 'pixel';
+                if (pixels[i]) pixel.classList.add('active');
+                pixel.addEventListener('click', () => togglePixel(i));
+                pixel.addEventListener('mousedown', () => startDrag(i));
+                pixel.addEventListener('mouseover', () => dragPixel(i));
+                grid.appendChild(pixel);
+            }
+        }
+
+        let isDragging = false;
+        function startDrag(index) {
+            isDragging = true;
+        }
+        function dragPixel(index) {
+            if (isDragging) togglePixel(index, false);
+        }
+        document.addEventListener('mouseup', () => isDragging = false);
+
+        function togglePixel(index, update = true) {
+            pixels[index] = pixels[index] ? 0 : 1;
+            if (update) renderGrid();
+            updatePreview();
+        }
+
+        function clearCanvas() {
+            pixels.fill(0);
+            renderGrid();
+            updatePreview();
+        }
+
+        function invertCanvas() {
+            pixels = pixels.map(p => p ? 0 : 1);
+            renderGrid();
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            preview.style.gridTemplateColumns = `repeat(${width}, 8px)`;
+
+            let pixelsOn = 0;
+            for (let i = 0; i < pixels.length; i++) {
+                const pixel = document.createElement('div');
+                pixel.className = 'preview-pixel';
+                if (pixels[i]) {
+                    pixel.classList.add('on');
+                    pixelsOn++;
+                }
+                preview.appendChild(pixel);
+            }
+
+            document.getElementById('pixelsOnCount').textContent = pixelsOn;
+            document.getElementById('bytesCount').textContent = Math.ceil((width * height) / 8);
+
+            updateCode();
+        }
+
+        function updateCode() {
+            // Convert pixels to bytes (LSB first, как в SSD1306)
+            const bytes = [];
+            for (let byte = 0; byte < (width * height) / 8; byte++) {
+                let byteVal = 0;
+                for (let bit = 0; bit < 8; bit++) {
+                    const pixelIndex = byte * 8 + bit;
+                    if (pixels[pixelIndex]) {
+                        byteVal |= (1 << bit);
+                    }
+                }
+                bytes.push(byteVal);
+            }
+
+            const hexString = bytes.map(b => '0x' + b.toString(16).padStart(2, '0')).join(', ');
+            const code = `# SSD1306 Image Data (${width}x${height})
+# Сгенерировано SSD1306 Pixel Editor
+
+IMAGE_DATA = [
+    ${hexString}
+]
+
+# Функция для отрисовки на дисплей (ssd1306.framebuf)
+def draw_image(display, x=0, y=0):
+    """
+    display - объект SSD1306
+    x, y - позиция начала изображения
+    """
+    import framebuf
+    fb = framebuf.FrameBuffer(bytearray(IMAGE_DATA), ${width}, ${height}, framebuf.MONO_HLSB)
+    display.blit(fb, x, y)
+    display.show()
+
+# Или вручную побитово (если нужно):
+def draw_image_manual(display, x=0, y=0):
+    """Отрисовка пиксель за пикселем"""
+    for byte_idx, byte_val in enumerate(IMAGE_DATA):
+        for bit in range(8):
+            if byte_val & (1 << bit):
+                pixel_x = x + (byte_idx % ${width})
+                pixel_y = y + (byte_idx // ${width})
+                display.pixel(pixel_x, pixel_y, 1)
+    display.show()
+`;
+
+            document.getElementById('code').textContent = code;
+        }
+
+        function copyToClipboard() {
+            const code = document.getElementById('code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Код скопирован в буфер обмена!');
+            });
+        }
+
+        function downloadAsArray() {
+            const code = document.getElementById('code').textContent;
+            const blob = new Blob([code], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ssd1306_image_${width}x${height}.py`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function toggleImport() {
+            document.getElementById('imageInput').click();
+        }
+
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    lastImportedImage = img;
+                    const threshold = parseInt(document.getElementById('threshold').value);
+                    convertImageToPixelsWithThreshold(img, threshold);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+
+        function convertImageToPixelsWithThreshold(img, threshold) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            // Отключаем сглаживание для резких линий
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Получаем данные пикселей
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+
+            // Конвертируем в чёрно-белое с ручным порогом
+            pixels = [];
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const brightness = (r + g + b) / 3;
+                pixels.push(brightness > threshold ? 1 : 0);
+            }
+
+            renderGrid();
+            updatePreview();
+        }
+
+        // Слушатели на изменение размера
+        document.getElementById('width').addEventListener('change', initializeCanvas);
+        document.getElementById('height').addEventListener('change', initializeCanvas);
+
+        // Обновление значения порога контраста
+        document.getElementById('threshold').addEventListener('input', (e) => {
+            document.getElementById('thresholdValue').textContent = e.target.value;
+            if (lastImportedImage) {
+                convertImageToPixelsWithThreshold(lastImportedImage, parseInt(e.target.value));
+            }
+        });
+
+        let lastImportedImage = null;
+
+        // Инициализация при загрузке
+        initializeCanvas();
+    </script>
+</body>
+</html>
