@@ -1,82 +1,206 @@
-# MicroPython SSD13XX Reader
+# 📖 MicroPython SSD13XX Reader
 
-A MicroPython‑based reader designed for RP2040 boards (tested on 16 MB ROM) with SSD1306 OLED displays. Includes PC‑side debugging tools for interface maintenance and easy testing.
+Электронная книга (ридер) на базе **Raspberry Pi Pico (RP2040)** и OLED-дисплея **SSD1306** с I²C-интерфейсом.
 
-## Features
-
-- **MicroPython powered** – runs on RP2040 (Raspberry Pi Pico / Pico W, etc.)  
-- **SSD1306 display support** – tested with 128×64 OLED over I²C  
-- **PC debugging** – allows interface testing and maintenance from a computer  
-- **Helper scripts** – split text chapters or topics for display  
-- **Standalone HTML tool** – pixel editor for creating custom sprites or layouts  
-
-## Hardware Requirements
-
-- RP2040‑based board (e.g., Raspberry Pi Pico) with at least 16 MB flash  
-- SSD1306 OLED display (I²C interface)  
-- Connecting wires (GND, VCC, SCL, SDA)  
-
-## Software & Dependencies
-
-- MicroPython firmware for RP2040  
-- `ssd1306.py` driver (included in most MicroPython builds, or copy from the repository)  
-- Python 3 on PC for the helper scripts and debug tool  
-
-## File Overview
-
-| File | Description |
-|------|-------------|
-| `main.py` | Main firmware for the reader – initializes the display and runs the reading logic. |
-| `split_chapters.py` | PC‑side script to split a text file into chapters for easier navigation on the device. |
-| `split_topics.py` | Similar to `split_chapters.py`, but splits by topics or headings. |
-| `SSD1306 Pixel Editor.html` | Offline HTML tool to design pixel art / UI elements for the display; saves as byte arrays for use in MicroPython. |
-| `README.md` | This file. |
-
-## Getting Started
-
-### 1. Flash MicroPython on RP2040
-Follow the official guide: [Raspberry Pi Pico Python SDK](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf)
-
-### 2. Upload the Code
-Copy `main.py` and the SSD1306 driver (`ssd1306.py`) to the board using `mpremote`, `rshell`, or Thonny.
-
-### 3. Connect the Display
-| SSD1306 | RP2040 |
-|---------|--------|
-| VCC     | 3.3V   |
-| GND     | GND    |
-| SCL     | GP1    |
-| SDA     | GP0    |
-
-*Adjust pins in `main.py` if different.*
-
-### 4. Run the Reader
-Power the board or reset it. The display should show the reader interface.
-
-### 5. PC Debugging
-Use `split_chapters.py` or `split_topics.py` to prepare text files. The HTML pixel editor helps design icons and layouts – simply open it in any browser.
-
-## Usage Notes
-
-- The reader is intended for displaying pre‑formatted text files stored on the board’s filesystem.
-- Use the PC scripts to split large texts into manageable chunks – each chunk becomes a separate file that the reader can load.
-- The pixel editor outputs byte arrays compatible with the `framebuf` module – paste the output into your MicroPython code for custom graphics.
-
-## Future Improvements
-
-- Add button controls (previous/next page, menu)  
-- Support for other SSD13XX displays (SSD1315, etc.)  
-- Implement bookmarking and font selection  
-
-## Contributing
-
-Feel free to open issues or pull requests. Suggestions for enhancements are welcome.
-
-## License
-
-This project is currently unlicensed. If you intend to reuse or distribute it, please consider adding an open‑source license (e.g., MIT) or contact the author.
+Проект позволяет читать текстовые файлы, разбитые на главы или темы, с удобной навигацией по двум кнопкам. Поддерживается транслитерация русского языка, разбивка длинных строк, сглаживание непечатаемых символов и виртуальный пейджер (работа с большими файлами без загрузки целиком в память).
 
 ---
 
-**Author:** [ntfs-sys](https://github.com/ntfs-sys)  
-**Repository:** [github.com/ntfs-sys/micropython_ssd13XX_reader](https://github.com/ntfs-sys/micropython_ssd13XX_reader)
+## 🎯 Возможности
+
+- ✅ Поддержка **SSD1306** (128×64, I²C)
+- ✅ Чтение текстовых файлов с карты памяти / внутренней файловой системы
+- ✅ **Транслитерация** кириллицы в латиницу (для отображения на дисплее без кириллического шрифта)
+- ✅ **Виртуальный пейджер** — файл не загружается целиком, читается по страницам (экономия RAM)
+- ✅ Две кнопки навигации: **листание вперёд/назад** и **выбор файла**
+- ✅ Автоматическая сборка меню из всех `.txt`, `.md`, `.py` и т.д. файлов в папке `/chapters`
+- ✅ Бегущая строка для длинных имён файлов и заголовков
+- ✅ Регулировка яркости дисплея (3 уровня)
+- ✅ Утилиты на ПК для **разбивки книги на главы** (`split_chapters.py`) или **вложенные темы** (`split_topics.py`)
+- ✅ Визуальный редактор спрайтов / чёрно-белых картинок (HTML) для создания кастомной графики
+
+---
+
+## 🧱 Аппаратные требования
+
+| Компонент              | Рекомендация                              |
+|------------------------|-------------------------------------------|
+| Плата                  | Raspberry Pi Pico / Pico W / RP2040       |
+| Дисплей                | SSD1306 (128×64) с I²C                    |
+| Кнопки                 | 2 тактовые кнопки (подтяжка к 3.3V)       |
+| Светодиод              | Встроенный на GP25 (опционально)          |
+| Память                 | 2 МБ Flash (достаточно для текстов)       |
+
+> Файлы для чтения хранятся на внутренней файловой системе MicroPython.
+
+---
+
+## 🔌 Подключение дисплея и кнопок
+
+### Дисплей SSD1306 (I²C)
+
+| SSD1306 | RP2040 (Pico) |
+|---------|----------------|
+| VCC     | 3.3V (или 5V)  |
+| GND     | GND            |
+| SCL     | GP5            |
+| SDA     | GP4            |
+
+> В `main.py` используется `I2C(0, sda=Pin(4), scl=Pin(5))`. При необходимости поменяйте пины.
+
+### Кнопки
+
+| Кнопка   | Пин  | Примечание               |
+|----------|------|--------------------------|
+| Влево / назад  | GP11 | Подтяжка PULL_DOWN |
+| Вправо / вперёд | GP9  | Подтяжка PULL_DOWN |
+
+> Нажатие обеих кнопок одновременно → выбор (select).
+
+---
+
+## 📥 Установка и запуск
+
+### 1️⃣ Установите MicroPython на Pico
+
+Официальное руководство:  
+[Raspberry Pi Pico Python SDK](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-python-sdk.pdf)
+
+### 2️⃣ Загрузите файлы на плату
+
+Скопируйте на Pico:
+
+- `main.py`
+- `ssd1306.py` (взять из MicroPython-репозитория или использовать прилагаемый)
+- `ezFBfont.py` и `ezFBfont_micro_full_05.py` (для шрифтов)
+- любые текстовые файлы — в папку `/chapters`
+
+> Если папки `/chapters` нет — создайте её в корне файловой системы.
+
+### 3️⃣ Подготовка текстов
+
+Для больших книг используйте скрипты на ПК:
+
+```bash
+python split_chapters.py my_book.txt ./chapters
+```
+
+или
+
+```
+python split_topics.py my_book.txt ./chapters
+```
+
+Они разобьют файл на главы / темы по заголовкам вида:
+
+```
+## 1. Название главы
+...
+## 2. Другая глава
+```
+
+Имена файлов будут вида: `1_Название_главы.txt`, `2_Другая_глава.txt` и т.д.
+
+### 4️⃣ Запуск
+
+Перезагрузите Pico. На дисплее появится меню выбора файла из папки `/chapters`.
+
+## 🕹️ Управление
+
+| Действие | Кнопки |
+|---|---|
+| Перемещение по меню / страницы | Левая / Правая |
+| Выбор файла / выход из чтения | Левая + Правая (одновременно) |
+
+> В режиме чтения: левая кнопка — предыдущая страница, правая — следующая.
+
+## 🛠️ Дополнительные утилиты
+
+### `split_chapters.py`
+
+Разбивает книгу на главы по заголовкам `## N. Текст`.
+Создаёт `chapters_index.json` и отдельные `.txt`-файлы.
+
+### `split_topics.py`
+
+Разбивает на три уровня:
+`# Глава` → `## Параграф` → `### Тема`.
+Создаёт `topics_index.json` и файлы вида `1.2.3_Название_темы.txt`.
+
+### `SSD1306 Pixel Editor.html`
+
+Визуальный редактор чёрно-белых картинок (128×64 и другие размеры).
+Позволяет рисовать пиксели, импортировать изображения (с регулировкой порога яркости) и экспортировать готовый Python-код для отрисовки на дисплей:
+
+```
+IMAGE_DATA = [0x00, 0x3C, ...]
+draw_image(display)
+```
+
+Откройте HTML-файл в браузере — никакого сервера не требуется.
+
+## ⚙️ Настройка под себя
+
+### Изменение пинов дисплея
+
+В `main.py`:
+
+```
+i2c = I2C(0, sda=Pin(4), scl=Pin(5), freq=400000)
+```
+
+### Изменение пинов кнопок
+
+```
+BTN_LEFT = Pin(11, Pin.IN, Pin.PULL_DOWN)
+BTN_RIGHT = Pin(9, Pin.IN, Pin.PULL_DOWN)
+```
+
+### Яркость
+
+По умолчанию: 30%, 60%, 100%. Изменить можно в списке `BRIGHT_LEVELS`.
+
+### Транслитерация
+
+Словарь `_RU_MAP` в `main.py` можно расширять любыми символами (математические, валюты, стрелки и т.д.).
+
+## 🧠 Особенности реализации
+
+- **Виртуальный пейджер** — при открытии файла сканируются только позиции начала страниц (offsets), сами страницы читаются по требованию. Это позволяет просматривать файлы любого размера, не боясь нехватки RAM.
+- **Неблокирующая обработка кнопок** — меню не тормозит, анимация бегущей строки работает плавно.
+- **Очистка текста** — удаляются непечатаемые управляющие символы, табуляции заменяются пробелами, а переводы строк обрабатываются корректно.
+
+## 📁 Структура проекта после установки
+
+```
+/
+├── main.py
+├── ssd1306.py
+├── ezFBfont.py
+├── ezFBfont_micro_full_05.py
+└── chapters/
+    ├── 1_First_chapter.txt
+    ├── 2_Second_chapter.txt
+    ├── chapters_index.json   (если создан split_chapters.py)
+    └── ...
+```
+
+## 🐛 Известные ограничения
+
+- Шрифт только латиница + транслитерация (нет полноценной кириллицы на дисплее)
+- Максимальный объём одной страницы — ~2 КБ (защита от переполнения)
+- Длина строки ограничена шириной экрана (128 / ширина символа)
+
+## 🤝 Вклад в проект
+
+Pull Request'ы приветствуются.
+Если вы нашли баг или хотите добавить поддержку других дисплеев (SSD1315, SH1106) — создавайте Issue.
+
+## 📜 Лицензия
+
+Проект предоставлен «как есть» без явной лицензии.
+При значительном использовании кода укажите авторство: [ntfs-sys](https://github.com/ntfs-sys).
+
+**Автор:** ntfs-sys
+**Репозиторий:** [github.com/ntfs-sys/micropython_ssd13XX_reader](https://github.com/ntfs-sys/micropython_ssd13XX_reader)
+
